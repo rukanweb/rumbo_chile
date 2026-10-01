@@ -28,6 +28,7 @@ except Exception:
 CACHE = "cache"      # lo fija construir() dentro de la carpeta de datos
 SIN_RED = False      # True: recalcula solo con los precios guardados
 SOLO_FALTAN = False  # True: descarga solo las series que no estan en la cache
+BASE = "CLP"         # Moneda en la que se calcula y se muestra todo el patrimonio
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"}
 
@@ -139,12 +140,12 @@ def descargar_serie(simbolo, anos=None):
 def descargar_morningstar(secid, universo="]2]0]FOESP$$ALL", anos=30):
     """Serie diaria de valores liquidativos de Morningstar, con cache en disco."""
     os.makedirs(CACHE, exist_ok=True)
-    ruta = os.path.join(CACHE, "MS_" + re.sub(r"[^A-Za-z0-9]", "_", secid) + ".json")
+    ruta = os.path.join(CACHE, f"MS_{BASE}_" + re.sub(r"[^A-Za-z0-9]", "_", secid) + ".json")
     previo = lee_cache(ruta)
     if SIN_RED or (SOLO_FALTAN and previo):
         return mover_fin_de_semana(previo)
     hoy_ = dt.date.today()
-    q = {"currencyId": "EUR", "idtype": "Morningstar", "frequency": "daily",
+    q = {"currencyId": BASE, "idtype": "Morningstar", "frequency": "daily",
          "startDate": (hoy_ - dt.timedelta(days=365 * anos)).isoformat(),
          "endDate": hoy_.isoformat(), "outputType": "COMPACTJSON", "id": secid + universo}
     url = ("https://lt.morningstar.com/api/rest.svc/timeseries_price/t92wz0sj7c?"
@@ -273,13 +274,13 @@ def guarda_cache(ruta, serie):
 
 def simbolo_fx(moneda):
     """Par de Yahoo para pasar una moneda a euros, y factor previo (peniques -> libras)."""
-    m = (moneda or "EUR").strip()
+    m = (moneda or BASE).strip()
     if m in ("GBp", "GBX"):
-        return "GBPEUR=X", 0.01
+        return f"GBP{BASE}=X", 0.01
     m = m.upper()
-    if m == "EUR":
+    if m == BASE:
         return None, 1.0
-    return f"{m}EUR=X", 1.0
+    return f"{m}{BASE}=X", 1.0
 
 
 def en_euros(serie, moneda, series):
@@ -289,7 +290,7 @@ def en_euros(serie, moneda, series):
         fx = series.get(sim) or {}
         if not fx:
             if serie:
-                aviso(f"No tengo el cambio {sim}: no puedo pasar a euros los precios en {moneda}.")
+                aviso(f"No tengo el cambio {sim}: no puedo pasar a {BASE} los precios en {moneda}.")
             return {}
         serie = a_euros(serie, fx)
     return {k: v * factor for k, v in serie.items()} if factor != 1 else dict(serie)
@@ -392,12 +393,12 @@ def xirr(flujos):
 def descargar_coingecko(coin, dias=365):
     """Serie diaria en euros de CoinGecko, con cache en disco. La API gratuita da un ano."""
     os.makedirs(CACHE, exist_ok=True)
-    ruta = os.path.join(CACHE, "CG_" + re.sub(r"[^A-Za-z0-9._-]", "_", coin) + ".json")
+    ruta = os.path.join(CACHE, f"CG_{BASE}_" + re.sub(r"[^A-Za-z0-9._-]", "_", coin) + ".json")
     previo = lee_cache(ruta)
     if SIN_RED or (SOLO_FALTAN and previo):
         return previo
     url = (f"https://api.coingecko.com/api/v3/coins/{urllib.parse.quote(coin)}/market_chart"
-           f"?vs_currency=eur&days={dias}&interval=daily")
+           f"?vs_currency={BASE.lower()}&days={dias}&interval=daily")
     try:
         req = urllib.request.Request(url, headers=UA)
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -628,7 +629,7 @@ def construir(cfg, carpeta, descargar=True):
         p["fuenteTexto"] = " · ".join(x for x in (
             p["fuentePrecio"], p.get("codigo"),
             f"convertido de {p.get('moneda')}" if p["fuente"] == "yahoo" and
-            (p.get("moneda") or "EUR").upper() != "EUR" else None) if x)
+            (p.get("moneda") or BASE).upper() != BASE else None) if x)
         p["aportaciones"] = []
         movs = movs_por.get(p["id"], [])
         snaps = [[v["fecha"], float(v["valor"]), v.get("aportado")]
@@ -1244,7 +1245,7 @@ def construir(cfg, carpeta, descargar=True):
     datos = {
         "generado": dt.datetime.now().replace(microsecond=0).isoformat(),
         "titular": cfg.get("titular", "Mi patrimonio"),
-        "moneda": cfg.get("moneda", "EUR"),
+        "moneda": BASE,
         "fechaExtracto": fecha_extracto.isoformat(),
         "fechas": eje_iso,
         "productos": productos,
@@ -1302,9 +1303,9 @@ def construir(cfg, carpeta, descargar=True):
 
     print()
     print("=" * 62)
-    print(f"  PATRIMONIO NETO      {patrimonio:14,.2f} EUR")
-    print(f"  Aportado             {aportado_total:14,.2f} EUR")
-    print(f"  Plusvalia latente    {plusvalia_total:14,.2f} EUR  "
+    print(f"  PATRIMONIO NETO      {patrimonio:14,.2f} {BASE}")
+    print(f"  Aportado             {aportado_total:14,.2f} {BASE}")
+    print(f"  Plusvalia latente    {plusvalia_total:14,.2f} {BASE}  "
           f"({(plusvalia_total/aportado_total*100 if aportado_total else 0):+.2f}%)")
     if tir_total is not None:
         print(f"  TIR anualizada       {tir_total*100:13.2f} %")
