@@ -11,7 +11,7 @@ Reglas para cada columna:
 - tipo_movimiento: una de estas palabras: compra, venta, dividendo, comision, saldo. Usa «saldo» solo para el saldo de una cuenta en una fecha.
 - unidades: participaciones, acciones o unidades compradas o vendidas, en positivo y con punto decimal. Déjalo vacío si no aparece.
 - importe: el dinero total de la operación, en positivo, con punto decimal y sin símbolo de moneda. En una compra, lo que salió de la cuenta con las comisiones incluidas; en una venta o un dividendo, lo que entró.
-- moneda: la moneda del importe (EUR, USD…).
+- moneda: la moneda del importe (CLP, USD…).
 - comision: la comisión de esa operación si aparece (ya va incluida en el importe). Si no, vacío.
 - nota: vacío, o una nota muy breve.
 
