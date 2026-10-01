@@ -7,32 +7,42 @@
   const NS = "http://www.w3.org/2000/svg";
 
   /* -------------------------------------------------- formato */
-  const nfEur = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const nfEur0 = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-  const nfNum = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
+  // Moneda base del patrimonio: la manda el motor en DATOS.moneda (CLP por defecto).
+  const MONEDA = (global.DATOS && global.DATOS.moneda) || "CLP";
+  const LOCALE = "es-CL";
+  const SIMBOLO = { CLP: "$", USD: "US$", EUR: "€" }[MONEDA] || MONEDA + " ";
+  const nfMon = new Intl.NumberFormat(LOCALE, { style: "currency", currency: MONEDA });
+  const nfMon0 = new Intl.NumberFormat(LOCALE, { style: "currency", currency: MONEDA, maximumFractionDigits: 0 });
+  // El peso no tiene centavos, pero el precio de una acción sí puede tenerlos (158,52).
+  const nfMonPrecio = new Intl.NumberFormat(LOCALE, { style: "currency", currency: MONEDA, maximumFractionDigits: 2 });
+  const nfNum = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 2 });
   const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
   // En la web exportada con «ocultar importes» no se enseña ninguna cantidad.
   const oculto = () => global.OCULTAR_IMPORTES === true;
   const nfUnidades = { format: v => oculto() ? "•••" : nfNum.format(v) };
 
+  // (Las funciones conservan el nombre fmtEur* del original para no tocar todo el panel;
+  //  ahora formatean en la moneda base.)
   function fmtEur(v, dec) {
     if (oculto()) return "•••";
     if (v === null || v === undefined || isNaN(v)) return "—";
-    return dec === 0 ? nfEur0.format(v) : nfEur.format(v);
+    if (dec === 0) return nfMon0.format(v);
+    if (MONEDA === "CLP" && Math.abs(v) < 1000) return nfMonPrecio.format(v);
+    return nfMon.format(v);
   }
   function fmtEurCorto(v) {
     if (oculto()) return "•••";
     if (v === null || v === undefined || isNaN(v)) return "—";
-    const a = Math.abs(v);
-    if (a >= 1e6) return (v / 1e6).toLocaleString("es-ES", { maximumFractionDigits: 2 }) + " M€";
-    if (a >= 1000) return (v / 1000).toLocaleString("es-ES", { maximumFractionDigits: 1 }) + "k €";
-    return Math.round(v) + " €";
+    const a = Math.abs(v), signo = v < 0 ? "-" : "";
+    if (a >= 1e6) return signo + SIMBOLO + (a / 1e6).toLocaleString(LOCALE, { maximumFractionDigits: a >= 1e8 ? 0 : 1 }) + " M";
+    if (a >= 1000) return signo + SIMBOLO + Math.round(a / 1000).toLocaleString(LOCALE) + " mil";
+    return signo + SIMBOLO + Math.round(a).toLocaleString(LOCALE);
   }
   function fmtPct(v, dec) {
     if (v === null || v === undefined || isNaN(v)) return "—";
     const d = dec === undefined ? 2 : dec;
-    return (v * 100).toLocaleString("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d }) + " %";
+    return (v * 100).toLocaleString(LOCALE, { minimumFractionDigits: d, maximumFractionDigits: d }) + " %";
   }
   function fmtPctSigno(v, dec) {
     if (v === null || v === undefined || isNaN(v)) return "—";
@@ -532,7 +542,7 @@
         rx: 3, fill: cfg.color, "fill-opacity": 0.85
       }));
       svg.appendChild(txt(W - 6, yy + filaAlto / 2 + 1,
-        dd[1].toLocaleString("es-ES", { maximumFractionDigits: 2 }) + " %", "barVal", { "text-anchor": "end" }));
+        dd[1].toLocaleString(LOCALE, { maximumFractionDigits: 2 }) + " %", "barVal", { "text-anchor": "end" }));
     });
     cont.appendChild(svg);
   }
@@ -759,6 +769,7 @@
 
   global.G = {
     fmtEur, fmtEurCorto, fmtPct, fmtPctSigno, fmtEurSigno, fmtFecha, fmtFechaCorta, fmtMes, nfNum: nfUnidades,
+    MONEDA, SIMBOLO, LOCALE,
     areaApilada, lineaConEventos, barrasApiladas, donut, mini, escalaBonita, css,
     barrasHorizontales, barrasSimples, multiLinea, barrasAgrupadas
   };

@@ -291,7 +291,7 @@ class Resolutor:
                 fi = r.get("ficha") or {}
                 datos = {"nombre": nombre or r.get("nombre") or r["codigo"], "tipo": r["tipo"],
                          "identificador": identificador.strip(), "fuente": r["fuente"], "codigo": r["codigo"],
-                         "moneda": r.get("moneda") or "EUR", "vivo": r.get("vivo") or "",
+                         "moneda": r.get("moneda") or motor.BASE, "vivo": r.get("vivo") or "",
                          "ter": fi.get("ter"), "riesgo": fi.get("riesgo"), "clase": fi.get("clase") or "",
                          "gestora": fi.get("gestora") or "", "largoPlazo": True}
                 ref = self._nuevo(datos, r)
@@ -345,7 +345,7 @@ def preparar_tabla(cfg, filas, carpeta):
         nombre = str(f.get("nombre") or "").strip()
         tprod = TIPO_PROD.get(sin_tildes(f.get("tipo_producto")), "")
         importe, unidades, comision = (lee_numero(f.get(k)) for k in ("importe", "unidades", "comision"))
-        moneda = (str(f.get("moneda") or "").strip() or "EUR").upper()
+        moneda = (str(f.get("moneda") or "").strip() or motor.BASE).upper()
         nota = str(f.get("nota") or "").strip()
 
         if not fecha:
@@ -372,7 +372,7 @@ def preparar_tabla(cfg, filas, carpeta):
         marcas = []
 
         # Importes en otra moneda: se pasan a euros con el cambio de ese día.
-        if moneda != "EUR" and importe is not None:
+        if moneda != motor.BASE and importe is not None:
             if moneda not in cambios:
                 cambios[moneda] = motor.serie_cambio(moneda, carpeta)
             fx = valor_en(cambios[moneda], fecha, margen=6)

@@ -28,6 +28,7 @@ except Exception:
 CACHE = "cache"      # lo fija construir() dentro de la carpeta de datos
 SIN_RED = False      # True: recalcula solo con los precios guardados
 SOLO_FALTAN = False  # True: descarga solo las series que no estan en la cache
+BASE = "CLP"         # Moneda en la que se calcula y se muestra todo el patrimonio
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"}
 
@@ -75,7 +76,7 @@ def rango_fechas(desde, hasta):
 
 def num_es(txt):
     """Convierte '1.399,89' o '3352,6' o '13.25' en float."""
-    t = (txt or "").strip().replace(" ", "").replace(" ", "").replace("€", "")
+    t = (txt or "").strip().replace(" ", "").replace(" ", "").replace("€", "").replace("US$", "").replace("$", "")
     if not t:
         return 0.0
     if "," in t and "." in t:
@@ -100,10 +101,13 @@ def r4(x):
 
 # ---------------------------------------------------------------- Yahoo
 
-def descargar_serie(simbolo, anos=None):
-    """Devuelve {fecha_iso: cierre} descargando de Yahoo, con cache en disco."""
+def descargar_serie(simbolo, anos=None, ajustado=False):
+    """Devuelve {fecha_iso: cierre} descargando de Yahoo, con cache en disco.
+    Con ajustado=True usa el cierre ajustado por dividendos (para los indices de
+    referencia: asi comparan con dividendos reinvertidos)."""
     os.makedirs(CACHE, exist_ok=True)
-    ruta = os.path.join(CACHE, re.sub(r"[^A-Za-z0-9._-]", "_", simbolo) + ".json")
+    ruta = os.path.join(CACHE, re.sub(r"[^A-Za-z0-9._-]", "_", simbolo)
+                        + ("_adj" if ajustado else "") + ".json")
     previo = lee_cache(ruta)
     if SIN_RED or (SOLO_FALTAN and previo):
         return previo
@@ -116,6 +120,8 @@ def descargar_serie(simbolo, anos=None):
             bruto = json.loads(resp.read().decode("utf-8", "replace"))
         res = bruto["chart"]["result"][0]
         cierres = res["indicators"]["quote"][0].get("close", [])
+        if ajustado:
+            cierres = (res["indicators"].get("adjclose") or [{}])[0].get("adjclose") or cierres
         nuevo = {}
         for ts, c in zip(res.get("timestamp", []), cierres):
             if c is not None:
@@ -139,12 +145,12 @@ def descargar_serie(simbolo, anos=None):
 def descargar_morningstar(secid, universo="]2]0]FOESP$$ALL", anos=30):
     """Serie diaria de valores liquidativos de Morningstar, con cache en disco."""
     os.makedirs(CACHE, exist_ok=True)
-    ruta = os.path.join(CACHE, "MS_" + re.sub(r"[^A-Za-z0-9]", "_", secid) + ".json")
+    ruta = os.path.join(CACHE, f"MS_{BASE}_" + re.sub(r"[^A-Za-z0-9]", "_", secid) + ".json")
     previo = lee_cache(ruta)
     if SIN_RED or (SOLO_FALTAN and previo):
         return mover_fin_de_semana(previo)
     hoy_ = dt.date.today()
-    q = {"currencyId": "EUR", "idtype": "Morningstar", "frequency": "daily",
+    q = {"currencyId": BASE, "idtype": "Morningstar", "frequency": "daily",
          "startDate": (hoy_ - dt.timedelta(days=365 * anos)).isoformat(),
          "endDate": hoy_.isoformat(), "outputType": "COMPACTJSON", "id": secid + universo}
     url = ("https://lt.morningstar.com/api/rest.svc/timeseries_price/t92wz0sj7c?"
@@ -273,13 +279,13 @@ def guarda_cache(ruta, serie):
 
 def simbolo_fx(moneda):
     """Par de Yahoo para pasar una moneda a euros, y factor previo (peniques -> libras)."""
-    m = (moneda or "EUR").strip()
+    m = (moneda or BASE).strip()
     if m in ("GBp", "GBX"):
-        return "GBPEUR=X", 0.01
+        return f"GBP{BASE}=X", 0.01
     m = m.upper()
-    if m == "EUR":
+    if m == BASE:
         return None, 1.0
-    return f"{m}EUR=X", 1.0
+    return f"{m}{BASE}=X", 1.0
 
 
 def en_euros(serie, moneda, series):
@@ -289,7 +295,7 @@ def en_euros(serie, moneda, series):
         fx = series.get(sim) or {}
         if not fx:
             if serie:
-                aviso(f"No tengo el cambio {sim}: no puedo pasar a euros los precios en {moneda}.")
+                aviso(f"No tengo el cambio {sim}: no puedo pasar a {BASE} los precios en {moneda}.")
             return {}
         serie = a_euros(serie, fx)
     return {k: v * factor for k, v in serie.items()} if factor != 1 else dict(serie)
@@ -392,12 +398,12 @@ def xirr(flujos):
 def descargar_coingecko(coin, dias=365):
     """Serie diaria en euros de CoinGecko, con cache en disco. La API gratuita da un ano."""
     os.makedirs(CACHE, exist_ok=True)
-    ruta = os.path.join(CACHE, "CG_" + re.sub(r"[^A-Za-z0-9._-]", "_", coin) + ".json")
+    ruta = os.path.join(CACHE, f"CG_{BASE}_" + re.sub(r"[^A-Za-z0-9._-]", "_", coin) + ".json")
     previo = lee_cache(ruta)
     if SIN_RED or (SOLO_FALTAN and previo):
         return previo
     url = (f"https://api.coingecko.com/api/v3/coins/{urllib.parse.quote(coin)}/market_chart"
-           f"?vs_currency=eur&days={dias}&interval=daily")
+           f"?vs_currency={BASE.lower()}&days={dias}&interval=daily")
     try:
         req = urllib.request.Request(url, headers=UA)
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -435,22 +441,38 @@ FUENTES = {"morningstar": "Morningstar", "yahoo": "Yahoo Finance",
            "coingecko": "CoinGecko", "manual": "Valor anotado a mano"}
 ORDEN_TIPO = {"compra": 0, "comision": 1, "dividendo": 2, "venta": 3}
 
-# Carteras de referencia para «¿y si lo hubieras metido en un indexado?». Son ETF
-# reales que cotizan en euros; las piezas son (ticker de Yahoo, peso).
+# Carteras de referencia del comparador ("¿y si lo hubieras metido todo en...?").
+# Cada pieza es (ticker de Yahoo, moneda en que cotiza, peso). Se usa el precio
+# ajustado por dividendos y se convierte a la moneda base con el cambio de cada dia.
 REFERENCIAS = {
-    "mundo": {"nombre": "MSCI World",
-              "detalle": "ETF iShares Core MSCI World (IWDA), en euros: unas 1.400 empresas de 23 países desarrollados.",
-              "piezas": [("IWDA.AS", 1.0)]},
+    "ipsa": {"nombre": "IPSA",
+             "detalle": "ETF IT NOW S&P IPSA (CFMITNIPSA): las 30 mayores empresas de la Bolsa de Santiago.",
+             "piezas": [("CFMITNIPSA.SN", "CLP", 1.0)]},
     "sp500": {"nombre": "S&P 500",
-              "detalle": "ETF iShares Core S&P 500 (SXR8), en euros: las 500 mayores empresas de EE. UU.",
-              "piezas": [("SXR8.DE", 1.0)]},
+              "detalle": "ETF Vanguard S&P 500 (VOO), convertido a pesos: las 500 mayores empresas de EE. UU.",
+              "piezas": [("VOO", "USD", 1.0)]},
+    "mundo": {"nombre": "MSCI World",
+              "detalle": "ETF iShares MSCI World (URTH), convertido a pesos: unas 1.400 empresas de 23 países desarrollados.",
+              "piezas": [("URTH", "USD", 1.0)]},
     "6040": {"nombre": "Cartera 60/40",
-             "detalle": "60 % MSCI World (IWDA) y 40 % bonos globales cubiertos a euros (EUNA), sin rebalancear.",
-             "piezas": [("IWDA.AS", 0.6), ("EUNA.DE", 0.4)]},
-    "sinriesgo": {"nombre": "Sin riesgo",
-                  "detalle": "ETF monetario del euro (XEON): lo que da el dinero aparcado, sin sustos.",
-                  "piezas": [("XEON.DE", 1.0)]},
+             "detalle": "60 % MSCI World (URTH) y 40 % bonos de EE. UU. (AGG), convertidos a pesos y sin rebalancear.",
+             "piezas": [("URTH", "USD", 0.6), ("AGG", "USD", 0.4)]},
 }
+
+
+def series_referencia(series):
+    """Descarga las piezas de las referencias y las deja en la moneda base, en
+    series["REF:<ticker>"]."""
+    for sim, moneda, _ in {pz for r in REFERENCIAS.values() for pz in r["piezas"]}:
+        clave = "REF:" + sim
+        if clave in series:
+            continue
+        fx = simbolo_fx(moneda)[0]
+        if fx and fx not in series:
+            series[fx] = descargar_serie(fx)
+        series[clave] = en_euros(descargar_serie(sim, ajustado=True), moneda, series)
+
+
 # Cómo se llama el precio y las unidades de cada tipo de producto en el panel:
 # (precio, unidades, "... lo tuvieras o no").
 ETIQUETAS = {
@@ -593,13 +615,25 @@ def construir(cfg, carpeta, descargar=True):
     print("\n=== 1. Precios ===" if descargar is True else "\n=== 1. Precios guardados ===")
     series = descarga_series(productos_cfg)
     if cfg.get("movimientos"):
-        for sim in {s for r in REFERENCIAS.values() for s, _ in r["piezas"]}:
-            if sim not in series:
-                series[sim] = descargar_serie(sim)
+        series_referencia(series)
 
     movs_por, vals_por = defaultdict(list), defaultdict(list)
     for m in cfg.get("movimientos", []):
         movs_por[m.get("producto")].append(m)
+    # Compras o ventas sin el campo "unidades" (solo pasa en la cartera de ejemplo:
+    # la app lo exige al guardar; ojo, 0 unidades es otra cosa y no se toca): se calculan con el precio de ese dia, asi el ejemplo cuadra
+    # con los precios reales que se descarguen.
+    for p in productos_cfg:
+        movs = movs_por.get(p["id"], [])
+        if p["fuente"] == "manual" or not any(m.get("tipo") in ("compra", "venta")
+                                               and m.get("unidades") is None for m in movs):
+            continue
+        s = precio_eur(p, series)
+        for i, m in enumerate(movs):
+            if m.get("tipo") in ("compra", "venta") and m.get("unidades") is None:
+                pr = valor_en(s, m["fecha"], margen=7)
+                if pr:
+                    movs[i] = dict(m, unidades=round(float(m["importe"]) / pr, 6))
     for v in cfg.get("valoraciones", []):
         vals_por[v.get("producto")].append(v)
 
@@ -628,7 +662,7 @@ def construir(cfg, carpeta, descargar=True):
         p["fuenteTexto"] = " · ".join(x for x in (
             p["fuentePrecio"], p.get("codigo"),
             f"convertido de {p.get('moneda')}" if p["fuente"] == "yahoo" and
-            (p.get("moneda") or "EUR").upper() != "EUR" else None) if x)
+            (p.get("moneda") or BASE).upper() != BASE else None) if x)
         p["aportaciones"] = []
         movs = movs_por.get(p["id"], [])
         snaps = [[v["fecha"], float(v["valor"]), v.get("aportado")]
@@ -1103,8 +1137,9 @@ def construir(cfg, carpeta, descargar=True):
 
     # El tipo sin riesgo sale de tu propio fondo monetario, si tienes uno, no de una
     # tabla externa. Sin monetario, el comparador no calcula el ratio de Sharpe.
-    sin_riesgo = next((p["id"] for p in productos if p.get("navSerie") and "monetari" in
-                       " ".join(str(p.get(k, "")) for k in ("tipo", "clase", "nombre")).lower()), None)
+    sin_riesgo = next((p["id"] for p in productos if p.get("navSerie") and any(
+                       x in " ".join(str(p.get(k, "")) for k in ("tipo", "clase", "nombre")).lower()
+                       for x in ("monetari", "money market"))), None)
     idx_mon = indice_pesos({sin_riesgo: 1}) if sin_riesgo else None
     m_mon = metricas_indice(idx_mon) if idx_mon else None
     rf = m_mon["cagr"] if m_mon else None
@@ -1203,7 +1238,7 @@ def construir(cfg, carpeta, descargar=True):
 
         refs = []
         for rid, ref in REFERENCIAS.items():
-            precios = [rellenar(series.get(sim, {}), eje) for sim, _ in ref["piezas"]]
+            precios = [rellenar(series.get("REF:" + sim, {}), eje) for sim, _, _ in ref["piezas"]]
             primeros = [next((v for v in pr if v), None) for pr in precios]
             if not all(primeros):
                 continue
@@ -1212,7 +1247,7 @@ def construir(cfg, carpeta, descargar=True):
                 pr_hoy = [precios[k][i] or primeros[k] for k in range(len(precios))]
                 if flujo_dia[i]:
                     antes = antes or any(precios[k][i] is None for k in range(len(precios)))
-                    for k, (_, peso) in enumerate(ref["piezas"]):
+                    for k, (_, _, peso) in enumerate(ref["piezas"]):
                         unidades[k] += flujo_dia[i] * peso / pr_hoy[k]
                 valor_r = sum(unidades[k] * pr_hoy[k] for k in range(len(precios)))
                 serie_r.append(round(valor_r, 2) if i >= i0 else None)
@@ -1244,7 +1279,7 @@ def construir(cfg, carpeta, descargar=True):
     datos = {
         "generado": dt.datetime.now().replace(microsecond=0).isoformat(),
         "titular": cfg.get("titular", "Mi patrimonio"),
-        "moneda": cfg.get("moneda", "EUR"),
+        "moneda": BASE,
         "fechaExtracto": fecha_extracto.isoformat(),
         "fechas": eje_iso,
         "productos": productos,
@@ -1302,9 +1337,9 @@ def construir(cfg, carpeta, descargar=True):
 
     print()
     print("=" * 62)
-    print(f"  PATRIMONIO NETO      {patrimonio:14,.2f} EUR")
-    print(f"  Aportado             {aportado_total:14,.2f} EUR")
-    print(f"  Plusvalia latente    {plusvalia_total:14,.2f} EUR  "
+    print(f"  PATRIMONIO NETO      {patrimonio:14,.2f} {BASE}")
+    print(f"  Aportado             {aportado_total:14,.2f} {BASE}")
+    print(f"  Plusvalia latente    {plusvalia_total:14,.2f} {BASE}  "
           f"({(plusvalia_total/aportado_total*100 if aportado_total else 0):+.2f}%)")
     if tir_total is not None:
         print(f"  TIR anualizada       {tir_total*100:13.2f} %")

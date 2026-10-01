@@ -873,7 +873,7 @@
         <div class="sep"></div>
         <span class="expoNota ${viejo ? "viejo" : ""}">${viejo ? "⚠ " : ""}Datos a ${G.fmtFecha(e.actualizado)}${viejo ? " · conviene refrescarlos" : ""}</span>
       </header>
-      <p class="subt" style="margin:0 0 18px">${e.constituyentes ? e.constituyentes.toLocaleString("es-ES") + " empresas. " : ""}${e.fuente}. Datos del índice a la fecha indicada.</p>
+      <p class="subt" style="margin:0 0 18px">${e.constituyentes ? e.constituyentes.toLocaleString(G.LOCALE) + " empresas. " : ""}${e.fuente}. Datos del índice a la fecha indicada.</p>
       <div class="expo">
         <div><h3>Por país</h3><div class="envGraf" id="expoPaises"></div></div>
         <div><h3>Por sector</h3><div class="envGraf" id="expoSectores"></div></div>
@@ -881,7 +881,7 @@
       ${e.top10 ? `<h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--tinta3);margin:24px 0 10px">
         Las 10 mayores posiciones · ${e.top10.reduce((a, x) => a + x[1], 0).toFixed(1)} % del fondo</h3>
         <div class="tablaEnv"><table class="dt"><tbody>${e.top10.map(x =>
-          `<tr><td>${x[0]}</td><td>${x[1].toLocaleString("es-ES", { minimumFractionDigits: 2 })} %</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+          `<tr><td>${x[0]}</td><td>${x[1].toLocaleString(G.LOCALE, { minimumFractionDigits: 2 })} %</td></tr>`).join("")}</tbody></table></div>` : ""}`;
     G.barrasHorizontales($("#expoPaises"), { datos: e.paises, color: color(p) });
     G.barrasHorizontales($("#expoSectores"), { datos: e.sectores, color: color(p) });
   }
@@ -992,7 +992,7 @@
             <td class="${m.rentTotal >= 0 ? "pos" : "neg"}">${G.fmtPctSigno(m.rentTotal, 1)}</td>
             <td class="${m.cagr >= 0 ? "pos" : "neg"}">${G.fmtPctSigno(m.cagr, 1)}</td>
             <td>${G.fmtPct(m.vol, 1)}</td>
-            <td>${m.sharpe == null ? "—" : m.sharpe.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td>${m.sharpe == null ? "—" : m.sharpe.toLocaleString(G.LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             <td class="neg">${G.fmtPct(m.maxDD, 1)}</td></tr>`;
         }).join("")}</tbody>`;
       $("#notaRiesgo").innerHTML =
@@ -1048,10 +1048,12 @@
   /* ---------------------------------------------- bitcoin en vivo */
   async function traeBtc() {
     const coin = D.vivo.coin || "bitcoin";
+    const mon = (D.moneda || "CLP").toLowerCase();
     const fuentes = [
-      [`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(coin)}&vs_currencies=eur`, j => j[coin] && j[coin].eur],
+      [`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(coin)}&vs_currencies=${mon}`, j => j[coin] && j[coin][mon]],
     ];
-    if (coin === "bitcoin") fuentes.push(["https://api.binance.com/api/v3/ticker/price?symbol=BTCEUR", j => parseFloat(j.price)]);
+    // Binance no tiene par en pesos chilenos: solo sirve de respaldo si la base es EUR.
+    if (coin === "bitcoin" && mon === "eur") fuentes.push(["https://api.binance.com/api/v3/ticker/price?symbol=BTCEUR", j => parseFloat(j.price)]);
     for (const [url, extrae] of fuentes) {
       try {
         const r = await fetch(url, { cache: "no-store" });
@@ -1166,7 +1168,7 @@
     console.error(e);
     document.querySelector(".env").insertAdjacentHTML("afterbegin",
       '<div class="av" style="margin:20px 0"><span>⚠</span><span><b>Algo ha fallado al pintar el panel.</b> ' +
-      String(e && e.message || e) + '<br>Cierra la app y vuelve a abrirla con «Iniciar»; si sigue igual, pulsa F12 y mira la consola del navegador.</span></div>');
+      String(e && e.message || e) + '<br>Cierra la app y vuelve a abrirla con «Iniciar»; si sigue igual, presiona F12 y mira la consola del navegador.</span></div>');
   }
   // ?ir=seccionComparar pone esa sección la primera de su pestaña (para capturas y enlaces).
   const irA_ = qs.get("ir") && document.getElementById(qs.get("ir"));

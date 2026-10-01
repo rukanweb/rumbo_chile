@@ -13,12 +13,15 @@
   /* ---------------------------------------------- utilidades */
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
     c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const eur = v => v == null ? "—" : Number(v).toLocaleString("es-ES", { style: "currency", currency: "EUR" });
-  const num = (v, d = 4) => v == null ? "—" : Number(v).toLocaleString("es-ES", { maximumFractionDigits: d });
+  // Moneda base (la define el motor): símbolo para los campos y formato de montos.
+  const SIM = G.SIMBOLO, MON = G.MONEDA;
+  const PH = MON === "CLP" ? "0" : "0,00";  // el peso no usa decimales
+  const eur = v => v == null ? "—" : G.fmtEur(Number(v));
+  const num = (v, d = 4) => v == null ? "—" : Number(v).toLocaleString(G.LOCALE, { maximumFractionDigits: d });
   const fecha = iso => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "—";
   const hoy = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
   const leeNum = t => {
-    t = String(t || "").replace(/[€\s]/g, "");
+    t = String(t || "").replace(/[€$\s]|US\$/g, "");
     // "1.234,56" y "1.000" (mil) en castellano; "1234.5" también vale.
     if (t.includes(",") || /^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "").replace(",", ".");
     return parseFloat(t);
@@ -117,7 +120,7 @@
       <label class="opcion"><input type="radio" name="desde" value="ejemplo">
         <span><b>Copiar el ejemplo para practicar</b><br>Puedes tocar, añadir y borrar sin miedo.
         Cuando quieras empezar de verdad, borra sus productos.</span></label>
-      <p class="ayuda">Tus datos se guardan solo en tu ordenador, en la carpeta <code>mis_datos</code>.</p>`,
+      <p class="ayuda">Tus datos se guardan solo en tu computador, en la carpeta <code>mis_datos</code>.</p>`,
     async f => {
       await api("POST", "api/empezar", { desde: campos(f).desde });
       recuerda.guarda("patrimonio.tab", "datos");
@@ -188,7 +191,7 @@
       return v ? `${eur(v.valor)} <small>${fecha(v.fecha)}</small>` : '<span class="neg">sin valor anotado</span>';
     }
     const c = D && (D.productos || []).find(x => x.id === p.id);
-    return c && c.nav ? `${num(c.nav)} € <small>${fecha(c.navFecha)}</small>` : '<small>tras guardar</small>';
+    return c && c.nav ? `${SIM}${num(c.nav)} <small>${fecha(c.navFecha)}</small>` : '<small>tras guardar</small>';
   }
   function vistaProductos() {
     const filas = E.cfg.productos.map(p => {
@@ -230,7 +233,7 @@
 
   function formProducto(p) {
     const nuevo = !p;
-    p = p || { tipo: "fondo", fuente: "morningstar", moneda: "EUR", largoPlazo: true, slot: siguienteColor() };
+    p = p || { tipo: "accion", fuente: "yahoo", moneda: MON, largoPlazo: true, slot: siguienteColor() };
     const clases = [...new Set(E.cfg.productos.map(x => x.clase).filter(Boolean))];
     const colores = Array.from({ length: 12 }, (_, i) =>
       `<label class="color" style="--c:var(--s${i + 1})" title="Color ${i + 1}"><input type="radio" name="slot" value="${i + 1}"><i></i></label>`).join("");
@@ -241,7 +244,7 @@
         <div class="fila"><div class="caja">${LUPA}<input id="bq" placeholder="IE00BYX5NX33, AAPL, bitcoin, oro…" autocomplete="off"></div>
           <button type="button" class="btn prim" id="bBuscar">Buscar</button></div>
         <div id="bRes" class="bRes"></div>
-        <p class="ayuda">¿No aparece o no tiene precio en internet (un piso, oro físico, un plan de pensiones)?
+        <p class="ayuda">¿No aparece o no tiene precio en internet (un departamento, oro físico, un depósito a plazo)?
           Rellénalo abajo y elige <b>«Valor anotado a mano»</b> como fuente del precio.</p>
       </div>
 
@@ -336,7 +339,7 @@
             const fi = r.ficha || {};
             rellena(f, {
               nombre: n, corto: n.slice(0, 24).trim(), tipo: r.tipo, identificador: r.identificador,
-              fuente: r.fuente, codigo: r.codigo, moneda: r.moneda || "EUR", vivo: r.vivo || "",
+              fuente: r.fuente, codigo: r.codigo, moneda: r.moneda || MON, vivo: r.vivo || "",
               ter: decimal(fi.ter), riesgo: fi.riesgo || "", gestora: fi.gestora || "",
             });
             if (fi.clase) f.elements.clase.value = fi.clase;
@@ -378,7 +381,7 @@
         <td style="text-align:left">${esc(E.tiposMov[m.tipo] || m.tipo)}</td>
         <td>${m.unidades ? num(m.unidades) : "—"}</td>
         <td class="${m.tipo === "compra" || m.tipo === "comision" ? "" : "pos"}">${eur(m.importe)}</td>
-        <td>${precio ? num(precio) + " €" : "—"}</td>
+        <td>${precio ? SIM + num(precio) : "—"}</td>
         <td class="nota" title="${esc(m.nota)}">${esc(m.nota || "")}</td>
         <td class="acc"><button data-acc="editarMov" data-id="${esc(m.id)}">Editar</button>
           <button data-acc="borrarMov" data-id="${esc(m.id)}">Borrar</button></td></tr>`;
@@ -416,8 +419,8 @@
           `<option value="${esc(p.id)}">${esc(nombre(p))}</option>`).join("")}</select>`, "", "ancho")}
         ${campo("Fecha", `<input type="date" name="fecha" max="${hoy()}">`)}
         ${campo("Unidades", '<input name="unidades" inputmode="decimal" placeholder="0">', "participaciones, acciones…", "siUnid")}
-        ${campo("Importe total", '<div class="conSufijo"><input name="importe" inputmode="decimal" placeholder="0,00"><span>€</span></div>')}
-        ${campo("Comisión", '<div class="conSufijo"><input name="comision" inputmode="decimal" placeholder="0,00"><span>€</span></div>', "ya incluida en el importe", "siCom")}
+        ${campo("Importe total", '<div class="conSufijo"><input name="importe" inputmode="decimal" placeholder="' + PH + '"><span>' + SIM + '</span></div>')}
+        ${campo("Comisión", '<div class="conSufijo"><input name="comision" inputmode="decimal" placeholder="' + PH + '"><span>' + SIM + '</span></div>', "ya incluida en el importe", "siCom")}
         ${campo("Nota", '<input name="nota" maxlength="200" placeholder="Por ejemplo: aportación mensual">', "opcional", "ancho")}
       </div>
       <div class="resumen"><span id="mAyuda"></span><b id="mPrecio"></b></div>`,
@@ -441,7 +444,7 @@
         ? " Como este producto se valora a mano, las unidades son opcionales." : "");
       const u = leeNum(f.elements.unidades.value), imp = leeNum(f.elements.importe.value);
       const com = leeNum(f.elements.comision.value) || 0;
-      $("#mPrecio").textContent = conUnid && u > 0 && imp > 0 ? `${num((imp - com) / u)} € / unidad` : "";
+      $("#mPrecio").textContent = conUnid && u > 0 && imp > 0 ? `${SIM}${num((imp - com) / u)} / unidad` : "";
     };
     f.oninput = ajusta;
     f.onchange = ajusta;
@@ -492,8 +495,8 @@
     const f = abreModal(`${nuevo ? "Anotar" : "Editar"} ${etiquetaValor(p).toLowerCase()} · ${esc(nombre(p))}`, `
       <div class="rejilla">
         ${campo("Fecha", `<input type="date" name="fecha" max="${hoy()}">`)}
-        ${campo(etiquetaValor(p), '<div class="conSufijo"><input name="valor" inputmode="decimal" placeholder="0,00"><span>€</span></div>')}
-        ${conAportado ? campo("Aportado hasta esa fecha", '<div class="conSufijo"><input name="aportado" inputmode="decimal" placeholder="0,00"><span>€</span></div>', "opcional", "ancho") : ""}
+        ${campo(etiquetaValor(p), '<div class="conSufijo"><input name="valor" inputmode="decimal" placeholder="' + PH + '"><span>' + SIM + '</span></div>')}
+        ${conAportado ? campo("Aportado hasta esa fecha", '<div class="conSufijo"><input name="aportado" inputmode="decimal" placeholder="' + PH + '"><span>' + SIM + '</span></div>', "opcional", "ancho") : ""}
       </div>
       <div class="resumen"><span>${conAportado
         ? "Lo aportado es el dinero que llevas metido en total. Si lo anotas, el panel calcula su rentabilidad."
@@ -519,7 +522,7 @@
         const u = ultimo(p.id);
         return `<label class="filaValor"><span><span class="nm"><i class="pt" style="background:var(--s${p.slot || 1})"></i>${esc(nombre(p))}</span>
           <small>${u ? `Último: ${eur(u.valor)} el ${fecha(u.fecha)}` : "Sin valores todavía"}</small></span>
-          <span class="conSufijo"><input name="v_${esc(p.id)}" inputmode="decimal" placeholder="${u ? decimal(u.valor) : "0,00"}"><span>€</span></span></label>`;
+          <span class="conSufijo"><input name="v_${esc(p.id)}" inputmode="decimal" placeholder="${u ? decimal(u.valor) : PH}"><span>${SIM}</span></span></label>`;
       }).join("")}</div>
       <div class="resumen"><span>Deja en blanco los que no quieras tocar. Es el gesto de cada mes: abre tu banco y copia los saldos.</span></div>`,
     async f => {
@@ -551,7 +554,7 @@
 
   function zona(acepta, varios, texto) {
     return `<label class="zona" id="imZona"><input type="file" id="imArchivos" accept="${acepta}"${varios ? " multiple" : ""}>
-      <span class="zIc">↥</span><b>${texto}</b><small>o pulsa aquí para elegir${varios ? "los" : "lo"}</small>
+      <span class="zIc">↥</span><b>${texto}</b><small>o haz clic aquí para elegir${varios ? "los" : "lo"}</small>
       <span class="zNom" id="imNombres"></span></label>`;
   }
 
@@ -725,7 +728,7 @@
       <td style="text-align:left">${esc(c.motivo)}</td><td>${c.productos}</td><td>${c.movimientos}</td>
       <td class="acc"><button data-acc="recuperarCopia" data-id="${esc(c.archivo)}">Recuperar</button></td></tr>`).join("");
     return `<section class="tarjeta"><header><h2>Copia de seguridad</h2>
-        <span class="subt">Un archivo con toda tu cartera, para guardarlo donde quieras o pasarlo a otro ordenador.</span></header>
+        <span class="subt">Un archivo con toda tu cartera, para guardarlo donde quieras o pasarlo a otro computador.</span></header>
       <div class="dosCol">
         <div class="bloque"><b>Guardar una copia</b>
           <p class="ayuda">Descarga un archivo <code>.json</code> con todos tus productos, movimientos y saldos.

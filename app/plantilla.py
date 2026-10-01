@@ -15,22 +15,22 @@ TIPOS_MOVIMIENTO = ["compra", "venta", "dividendo", "comision", "saldo"]
 
 EXPLICACION = [
     ("fecha", "Sí", "Día de la operación. Por ejemplo 10/03/2025."),
-    ("identificador", "Casi siempre", "ISIN (IE00BYX5NX33) o ticker (AAPL, BTC-EUR). Vacío solo en cuentas y cosas sin precio en internet."),
+    ("identificador", "Casi siempre", "Ticker de Yahoo (CHILE.SN, CFIETFGE.SN, VOO, BTC-USD) o ISIN. Vacío solo en cuentas y cosas sin precio en internet."),
     ("nombre", "Si no hay identificador", "Nombre del producto o de la cuenta. Sirve para reconocer las cuentas bancarias."),
     ("tipo_producto", "No", "fondo, etf, accion, cripto, commodity, bono, pension, efectivo, inmueble, deuda u otro."),
     ("tipo_movimiento", "Sí", "compra, venta, dividendo, comision o saldo (el saldo de una cuenta en esa fecha)."),
     ("unidades", "Recomendado", "Participaciones, acciones u onzas. Si lo dejas vacío, se calculan con el precio de ese día."),
     ("importe", "Sí", "Dinero total. Compra: lo que salió de tu cuenta, con comisiones. Venta o dividendo: lo que entró."),
-    ("moneda", "No", "Moneda del importe. Si no es EUR, se convierte con el cambio de ese día. Vacío = EUR."),
+    ("moneda", "No", "Moneda del importe. Si no es CLP, se convierte a pesos con el cambio de ese día. Vacío = CLP."),
     ("comision", "No", "Comisión de la operación, ya incluida en el importe."),
     ("nota", "No", "Lo que quieras apuntar."),
 ]
 EJEMPLO = [
-    (dt.date(2025, 3, 10), "IE00BYX5NX33", "Fidelity MSCI World", "fondo", "compra", 62.5, 900, "EUR", None, "Aportación mensual"),
-    (dt.date(2025, 4, 2), "AAPL", "Apple", "accion", "compra", 5, 1050, "USD", 2, ""),
-    (dt.date(2025, 5, 15), "BTC-EUR", "Bitcoin", "cripto", "compra", 0.01, 600, "EUR", None, ""),
-    (dt.date(2025, 6, 30), "AAPL", "Apple", "accion", "dividendo", None, 1.25, "USD", None, ""),
-    (dt.date(2025, 6, 30), "", "Cuenta del banco", "efectivo", "saldo", None, 2500, "EUR", None, "Saldo a fin de mes"),
+    (dt.date(2025, 3, 10), "CHILE.SN", "Banco de Chile", "accion", "compra", 1000, 150500, "CLP", 500, "Zesty"),
+    (dt.date(2025, 4, 2), "VOO", "Vanguard S&P 500", "etf", "compra", 2, 1010, "USD", None, "Racional"),
+    (dt.date(2025, 5, 15), "BTC-USD", "Bitcoin", "cripto", "compra", 0.01, 600000, "CLP", None, "Sunix"),
+    (dt.date(2025, 6, 30), "VOO", "Vanguard S&P 500", "etf", "dividendo", None, 3.4, "USD", None, ""),
+    (dt.date(2025, 6, 30), "", "Cuenta remunerada", "efectivo", "saldo", None, 2500000, "CLP", None, "Saldo a fin de mes"),
 ]
 
 

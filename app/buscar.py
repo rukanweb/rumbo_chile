@@ -15,6 +15,7 @@ import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
+from . import motor
 from .motor import UA
 
 ES_ISIN = re.compile(r"^[A-Z]{2}[A-Z0-9]{9}\d$")
@@ -118,27 +119,27 @@ def probar(fuente, codigo):
                 return None
             ts, c = cierres[-1]
             return {"precio": round(c, 4), "fecha": dt.date.fromtimestamp(ts).isoformat(),
-                    "moneda": meta.get("currency") or "EUR",
+                    "moneda": meta.get("currency") or motor.BASE,
                     "nombre": meta.get("longName") or meta.get("shortName"),
                     "mercado": meta.get("fullExchangeName") or meta.get("exchangeName")}
         if fuente == "morningstar":
             hoy = dt.date.today()
-            q = {"currencyId": "EUR", "idtype": "Morningstar", "frequency": "daily",
+            q = {"currencyId": motor.BASE, "idtype": "Morningstar", "frequency": "daily",
                  "startDate": (hoy - dt.timedelta(days=20)).isoformat(), "endDate": hoy.isoformat(),
                  "outputType": "COMPACTJSON", "id": codigo + "]2]0]FOESP$$ALL"}
             datos = [x for x in _get(MS_SERIE + urllib.parse.urlencode(q, safe="]$")) if x and x[1]]
             if not datos:
                 return None
             ts, v = datos[-1][:2]
-            return {"precio": round(v, 4), "moneda": "EUR", "mercado": "Morningstar",
+            return {"precio": round(v, 4), "moneda": motor.BASE, "mercado": "Morningstar",
                     "fecha": dt.datetime.fromtimestamp(ts / 1000, dt.timezone.utc).date().isoformat()}
         if fuente == "coingecko":
             url = ("https://api.coingecko.com/api/v3/simple/price?"
-                   + urllib.parse.urlencode({"ids": codigo, "vs_currencies": "eur"}))
-            v = _get(url).get(codigo, {}).get("eur")
+                   + urllib.parse.urlencode({"ids": codigo, "vs_currencies": motor.BASE.lower()}))
+            v = _get(url).get(codigo, {}).get(motor.BASE.lower())
             if not v:
                 return None
-            return {"precio": v, "moneda": "EUR", "fecha": dt.date.today().isoformat(),
+            return {"precio": v, "moneda": motor.BASE, "fecha": dt.date.today().isoformat(),
                     "mercado": "CoinGecko"}
     except Exception:
         return None
@@ -205,10 +206,11 @@ def buscar(texto):
             if tipo not in TIPO_YAHOO:
                 continue
             if tipo == "CRYPTOCURRENCY":
-                # Yahoo trae años de histórico en euros; CoinGecko se usa para el precio en vivo.
+                # Yahoo trae años de histórico en dólares (el motor los pasa a la moneda
+                # base con el cambio de cada día); CoinGecko se usa para el precio en vivo.
                 base = sym.split("-")[0]
                 cg = next((c["id"] for c in monedas if (c.get("symbol") or "").upper() == base), None)
-                añade("yahoo", f"{base}-EUR", (x.get("shortname") or base).replace(" USD", ""),
+                añade("yahoo", f"{base}-USD", (x.get("shortname") or base).replace(" USD", ""),
                       "cripto", base, vivo=cg)
             else:
                 añade("yahoo", sym, x.get("longname") or x.get("shortname"), TIPO_YAHOO[tipo])
@@ -238,9 +240,9 @@ def buscar(texto):
         c.update({k: v for k, v in p.items() if v is not None and (k != "nombre" or not c["nombre"])})
         c["mercado"] = c.pop("bolsa") or c.get("mercado")
         salida.append(c)
-    # Arriba: los fondos de Morningstar, luego el ticker exacto que has escrito y
-    # luego lo que cotiza en euros.
+    # Arriba: los fondos de Morningstar, luego el ticker exacto que escribiste y
+    # luego lo que cotiza en la moneda base (pesos).
     exacto = q.upper()
     salida.sort(key=lambda c: (c["fuente"] != "morningstar" or c["tipo"] != "fondo",
-                               c["codigo"].upper() != exacto, c.get("moneda") != "EUR"))
+                               c["codigo"].upper() != exacto, c.get("moneda") != motor.BASE))
     return salida

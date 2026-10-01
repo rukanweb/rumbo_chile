@@ -23,8 +23,8 @@ CARTERA_VACIA = {
     "version": 1, "titular": "Mi patrimonio",
     "productos": [], "movimientos": [], "valoraciones": [],
     "comparador": [{"id": "real", "nombre": "Mi cartera real", "real": True}],
-    "hitos": [10000, 25000, 50000, 100000, 250000, 500000, 1000000],
-    "objetivo": {"activo": True, "importe": 100000, "etiqueta": "Próximo objetivo"},
+    "hitos": [1000000, 5000000, 10000000, 25000000, 50000000, 100000000, 250000000],
+    "objetivo": {"activo": True, "importe": 10000000, "etiqueta": "Próximo objetivo"},
 }
 
 
@@ -80,7 +80,7 @@ def numero(valor, etiqueta, errores, obligatorio=True, minimo=None, mayor_que=No
     if isinstance(valor, (int, float)):
         x = float(valor)
     else:
-        t = valor.strip().replace("€", "").replace("%", "").replace(" ", "")
+        t = valor.strip().replace("€", "").replace("US$", "").replace("$", "").replace("%", "").replace(" ", "")
         if not re.fullmatch(r"-?[\d.,]+", t):
             errores.append(f"{etiqueta.capitalize()} no es un número: «{valor}».")
             return None

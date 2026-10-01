@@ -639,9 +639,8 @@ body.video .tarjetaCanal{display:none}
 
 <div class="banner" id="bannerVersion" hidden><span id="bannerVersionTexto"></span></div>
 <div class="banner" id="bannerDemo" hidden>
-  <span><b>Estás viendo una cartera de ejemplo:</b> es la cartera real de <span class="autorCanal"></span>,
-  que cada mes cuenta cómo evoluciona en su <a class="enlaceCanal" target="_blank" rel="noopener">canal de YouTube</a>.
-  No es una recomendación de inversión.</span>
+  <span><b>Estás viendo una cartera de ejemplo:</b> los montos son ficticios y los precios, reales.
+  Sirve para recorrer la app antes de cargar la tuya. No es una recomendación de inversión.</span>
   <button class="btn prim" id="btnEmpezar">Empezar con mis datos</button>
 </div>
 <p class="aviso-legal">Herramienta informativa. No es asesoramiento financiero. No se garantiza la exactitud de los datos ni de los precios.</p>
@@ -677,7 +676,7 @@ body.video .tarjetaCanal{display:none}
   <section style="margin-top:26px">
     <header style="display:flex;align-items:center;gap:12px;margin-bottom:2px">
       <h2 style="font-size:15px">Componentes de la cartera</h2>
-      <span class="subt">Pulsa uno para abrir su ficha completa</span>
+      <span class="subt">Haz clic en uno para abrir su ficha completa</span>
     </header>
     <div class="chips" id="chips"></div>
   </section>
@@ -815,15 +814,15 @@ body.video .tarjetaCanal{display:none}
   </section>
 
   <section class="tarjeta ayudaTarjeta">
-    <header><h2>Ayuda</h2><span class="subt">Las dudas más habituales. Pulsa una para ver la respuesta.</span></header>
+    <header><h2>Ayuda</h2><span class="subt">Las dudas más habituales. Haz clic en una para ver la respuesta.</span></header>
 
     <details class="faq" open><summary>Mi producto no aparece en el buscador</summary><div>
       <p>Prueba en este orden:</p>
       <ol>
         <li><b>Busca por ISIN</b> (12 caracteres, como <code>IE00BYX5NX33</code>). Lo tienes en la ficha del producto en tu banco. Es la forma más fiable, sobre todo para fondos.</li>
-        <li>Para acciones y ETF, prueba el <b>ticker con la bolsa</b>: <code>SAN.MC</code> (Madrid), <code>IWDA.AS</code> (Ámsterdam), <code>EUNL.DE</code> (Xetra), <code>AAPL</code> (EE. UU.).</li>
+        <li>Para acciones y ETF, prueba el <b>ticker con la bolsa</b>: <code>CHILE.SN</code> o <code>CFIETFGE.SN</code> (Bolsa de Santiago), <code>VOO</code> o <code>AAPL</code> (EE. UU.).</li>
         <li>Para criptomonedas, escribe su nombre en inglés (<code>bitcoin</code>, <code>ethereum</code>).</li>
-        <li>Si no cotiza en ningún sitio (un plan de pensiones, un depósito, oro físico, un piso), créalo igualmente y elige <b>«Valor anotado a mano»</b> como fuente del precio. Luego anota su valor de vez en cuando en «Saldos y valores».</li>
+        <li>Si no cotiza en ningún sitio (un depósito a plazo, una cuenta remunerada, oro físico, un departamento), créalo igualmente y elige <b>«Valor anotado a mano»</b> como fuente del precio. Luego anota su valor de vez en cuando en «Saldos y valores».</li>
       </ol></div></details>
 
     <details class="faq"><summary>El valor no coincide con el que veo en mi banco</summary><div>
@@ -837,12 +836,12 @@ body.video .tarjetaCanal{display:none}
 
     <details class="faq"><summary>¿De dónde salen los precios y cada cuánto se actualizan?</summary><div>
       <p>De Morningstar (fondos), Yahoo Finance (acciones, ETF, materias primas, cripto y tipos de cambio) y CoinGecko (cripto en vivo). Son servicios públicos y gratuitos: casi siempre van bien, pero pueden fallar o traer algún dato raro.</p>
-      <p>La app actualiza los precios al abrirse si tienen más de 6 horas, y cuando pulsas <b>«↻ Actualizar precios»</b>. Si una fuente no responde, usa el último precio guardado y te avisa.</p></div></details>
+      <p>La app actualiza los precios al abrirse si tienen más de 6 horas, y cuando presionas <b>«↻ Actualizar precios»</b>. Si una fuente no responde, usa el último precio guardado y te avisa.</p></div></details>
 
-    <details class="faq"><summary>¿Mis datos salen de mi ordenador?</summary><div>
+    <details class="faq"><summary>¿Mis datos salen de mi computador?</summary><div>
       <p>No. Todo se guarda en la carpeta <code>mis_datos</code>, dentro de la carpeta de la app. No hay cuentas, ni servidores, ni nadie más que los vea. La app solo sale a internet para descargar precios, y en esas consultas no va ningún dato tuyo.</p></div></details>
 
-    <details class="faq"><summary>¿Cómo meto mi cuenta del banco, un plan de pensiones o un piso?</summary><div>
+    <details class="faq"><summary>¿Cómo meto mi cuenta del banco, un APV o un departamento?</summary><div>
       <ol>
         <li>En <b>Mis datos → Productos</b>, añade el producto. Para una cuenta elige el tipo «Cuenta / efectivo»; para lo demás, la fuente «Valor anotado a mano».</li>
         <li>En <b>Saldos y valores</b>, anota su valor con la fecha. Una vez al mes basta: con <b>«Anotar todos de una vez»</b> lo haces en un minuto.</li>
@@ -850,10 +849,10 @@ body.video .tarjetaCanal{display:none}
       </ol></div></details>
 
     <details class="faq"><summary>¿Qué es la TIR y por qué no coincide con la rentabilidad?</summary><div>
-      <p>La <b>rentabilidad</b> compara lo que vale tu cartera con lo que has metido, sin mirar cuándo lo metiste. La <b>TIR</b> (tasa interna de rentabilidad) sí tiene en cuenta cuándo entró y salió cada euro, y lo expresa como un porcentaje anual. Si aportas poco a poco, la TIR es la cifra honesta para compararte con un depósito o con un índice.</p></div></details>
+      <p>La <b>rentabilidad</b> compara lo que vale tu cartera con lo que has metido, sin mirar cuándo lo metiste. La <b>TIR</b> (tasa interna de rentabilidad) sí tiene en cuenta cuándo entró y salió cada peso, y lo expresa como un porcentaje anual. Si aportas poco a poco, la TIR es la cifra honesta para compararte con un depósito o con un índice.</p></div></details>
 
     <details class="faq"><summary>He borrado o cambiado algo sin querer</summary><div>
-      <p>Antes de cada cambio, la app guarda una copia automática (las últimas 20). Ve a <b>Mis datos → Copias y web</b> y pulsa <b>«Recuperar»</b> en la copia de antes del error.</p></div></details>
+      <p>Antes de cada cambio, la app guarda una copia automática (las últimas 20). Ve a <b>Mis datos → Copias y web</b> y presiona <b>«Recuperar»</b> en la copia de antes del error.</p></div></details>
 
     <details class="faq"><summary>¿Cómo actualizo a una versión nueva sin perder mis datos?</summary><div>
       <ol>
@@ -864,13 +863,13 @@ body.video .tarjetaCanal{display:none}
       </ol>
       <p>Por si acaso, antes descarga una copia en <b>Mis datos → Copias y web</b>.</p></div></details>
 
-    <details class="faq"><summary>¿Cómo lo paso a otro ordenador?</summary><div>
-      <p>En el ordenador viejo, <b>Mis datos → Copias y web → Descargar copia</b>. En el nuevo, instala la app, ábrela y, en ese mismo sitio, sube el archivo con <b>«Recuperar desde un archivo»</b>. También vale copiar la carpeta <code>mis_datos</code> entera.</p></div></details>
+    <details class="faq"><summary>¿Cómo lo paso a otro computador?</summary><div>
+      <p>En el computador antiguo, <b>Mis datos → Copias y web → Descargar copia</b>. En el nuevo, instala la app, ábrela y, en ese mismo sitio, sube el archivo con <b>«Recuperar desde un archivo»</b>. También vale copiar la carpeta <code>mis_datos</code> entera.</p></div></details>
 
     <details class="faq"><summary>Windows o Mac me dicen que el archivo puede ser peligroso</summary><div>
       <p>Pasa con cualquier archivo descargado de internet que no viene de una tienda de apps. <code>Iniciar.bat</code> e <code>Iniciar.command</code> son texto plano: puedes abrirlos con el Bloc de notas o TextEdit y leer todo lo que hacen.</p>
       <ul>
-        <li><b>Windows</b>: en el aviso azul, pulsa «Más información» y luego «Ejecutar de todas formas».</li>
+        <li><b>Windows</b>: en el aviso azul, presiona «Más información» y luego «Ejecutar de todas formas».</li>
         <li><b>Mac</b>: la primera vez, clic derecho sobre <code>Iniciar.command</code> → «Abrir» → «Abrir».</li>
       </ul></div></details>
 
