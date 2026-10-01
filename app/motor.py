@@ -101,10 +101,13 @@ def r4(x):
 
 # ---------------------------------------------------------------- Yahoo
 
-def descargar_serie(simbolo, anos=None):
-    """Devuelve {fecha_iso: cierre} descargando de Yahoo, con cache en disco."""
+def descargar_serie(simbolo, anos=None, ajustado=False):
+    """Devuelve {fecha_iso: cierre} descargando de Yahoo, con cache en disco.
+    Con ajustado=True usa el cierre ajustado por dividendos (para los indices de
+    referencia: asi comparan con dividendos reinvertidos)."""
     os.makedirs(CACHE, exist_ok=True)
-    ruta = os.path.join(CACHE, re.sub(r"[^A-Za-z0-9._-]", "_", simbolo) + ".json")
+    ruta = os.path.join(CACHE, re.sub(r"[^A-Za-z0-9._-]", "_", simbolo)
+                        + ("_adj" if ajustado else "") + ".json")
     previo = lee_cache(ruta)
     if SIN_RED or (SOLO_FALTAN and previo):
         return previo
@@ -117,6 +120,8 @@ def descargar_serie(simbolo, anos=None):
             bruto = json.loads(resp.read().decode("utf-8", "replace"))
         res = bruto["chart"]["result"][0]
         cierres = res["indicators"]["quote"][0].get("close", [])
+        if ajustado:
+            cierres = (res["indicators"].get("adjclose") or [{}])[0].get("adjclose") or cierres
         nuevo = {}
         for ts, c in zip(res.get("timestamp", []), cierres):
             if c is not None:
@@ -436,22 +441,38 @@ FUENTES = {"morningstar": "Morningstar", "yahoo": "Yahoo Finance",
            "coingecko": "CoinGecko", "manual": "Valor anotado a mano"}
 ORDEN_TIPO = {"compra": 0, "comision": 1, "dividendo": 2, "venta": 3}
 
-# Carteras de referencia para «¿y si lo hubieras metido en un indexado?». Son ETF
-# reales que cotizan en euros; las piezas son (ticker de Yahoo, peso).
+# Carteras de referencia del comparador ("¿y si lo hubieras metido todo en...?").
+# Cada pieza es (ticker de Yahoo, moneda en que cotiza, peso). Se usa el precio
+# ajustado por dividendos y se convierte a la moneda base con el cambio de cada dia.
 REFERENCIAS = {
-    "mundo": {"nombre": "MSCI World",
-              "detalle": "ETF iShares Core MSCI World (IWDA), en euros: unas 1.400 empresas de 23 países desarrollados.",
-              "piezas": [("IWDA.AS", 1.0)]},
+    "ipsa": {"nombre": "IPSA",
+             "detalle": "ETF IT NOW S&P IPSA (CFMITNIPSA): las 30 mayores empresas de la Bolsa de Santiago.",
+             "piezas": [("CFMITNIPSA.SN", "CLP", 1.0)]},
     "sp500": {"nombre": "S&P 500",
-              "detalle": "ETF iShares Core S&P 500 (SXR8), en euros: las 500 mayores empresas de EE. UU.",
-              "piezas": [("SXR8.DE", 1.0)]},
+              "detalle": "ETF Vanguard S&P 500 (VOO), convertido a pesos: las 500 mayores empresas de EE. UU.",
+              "piezas": [("VOO", "USD", 1.0)]},
+    "mundo": {"nombre": "MSCI World",
+              "detalle": "ETF iShares MSCI World (URTH), convertido a pesos: unas 1.400 empresas de 23 países desarrollados.",
+              "piezas": [("URTH", "USD", 1.0)]},
     "6040": {"nombre": "Cartera 60/40",
-             "detalle": "60 % MSCI World (IWDA) y 40 % bonos globales cubiertos a euros (EUNA), sin rebalancear.",
-             "piezas": [("IWDA.AS", 0.6), ("EUNA.DE", 0.4)]},
-    "sinriesgo": {"nombre": "Sin riesgo",
-                  "detalle": "ETF monetario del euro (XEON): lo que da el dinero aparcado, sin sustos.",
-                  "piezas": [("XEON.DE", 1.0)]},
+             "detalle": "60 % MSCI World (URTH) y 40 % bonos de EE. UU. (AGG), convertidos a pesos y sin rebalancear.",
+             "piezas": [("URTH", "USD", 0.6), ("AGG", "USD", 0.4)]},
 }
+
+
+def series_referencia(series):
+    """Descarga las piezas de las referencias y las deja en la moneda base, en
+    series["REF:<ticker>"]."""
+    for sim, moneda, _ in {pz for r in REFERENCIAS.values() for pz in r["piezas"]}:
+        clave = "REF:" + sim
+        if clave in series:
+            continue
+        fx = simbolo_fx(moneda)[0]
+        if fx and fx not in series:
+            series[fx] = descargar_serie(fx)
+        series[clave] = en_euros(descargar_serie(sim, ajustado=True), moneda, series)
+
+
 # Cómo se llama el precio y las unidades de cada tipo de producto en el panel:
 # (precio, unidades, "... lo tuvieras o no").
 ETIQUETAS = {
@@ -594,9 +615,7 @@ def construir(cfg, carpeta, descargar=True):
     print("\n=== 1. Precios ===" if descargar is True else "\n=== 1. Precios guardados ===")
     series = descarga_series(productos_cfg)
     if cfg.get("movimientos"):
-        for sim in {s for r in REFERENCIAS.values() for s, _ in r["piezas"]}:
-            if sim not in series:
-                series[sim] = descargar_serie(sim)
+        series_referencia(series)
 
     movs_por, vals_por = defaultdict(list), defaultdict(list)
     for m in cfg.get("movimientos", []):
@@ -1204,7 +1223,7 @@ def construir(cfg, carpeta, descargar=True):
 
         refs = []
         for rid, ref in REFERENCIAS.items():
-            precios = [rellenar(series.get(sim, {}), eje) for sim, _ in ref["piezas"]]
+            precios = [rellenar(series.get("REF:" + sim, {}), eje) for sim, _, _ in ref["piezas"]]
             primeros = [next((v for v in pr if v), None) for pr in precios]
             if not all(primeros):
                 continue
@@ -1213,7 +1232,7 @@ def construir(cfg, carpeta, descargar=True):
                 pr_hoy = [precios[k][i] or primeros[k] for k in range(len(precios))]
                 if flujo_dia[i]:
                     antes = antes or any(precios[k][i] is None for k in range(len(precios)))
-                    for k, (_, peso) in enumerate(ref["piezas"]):
+                    for k, (_, _, peso) in enumerate(ref["piezas"]):
                         unidades[k] += flujo_dia[i] * peso / pr_hoy[k]
                 valor_r = sum(unidades[k] * pr_hoy[k] for k in range(len(precios)))
                 serie_r.append(round(valor_r, 2) if i >= i0 else None)
