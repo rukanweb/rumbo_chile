@@ -141,7 +141,7 @@ GUARDAR = {"productos": almacen.guarda_producto, "movimientos": almacen.guarda_m
            "valoraciones": almacen.guarda_valoracion}
 BORRAR = {"productos": almacen.borra_producto, "movimientos": almacen.borra_movimiento,
           "valoraciones": almacen.borra_valoracion}
-AVISO_DEMO = ("Estás viendo la cartera de ejemplo. Pulsa «Empezar con mis datos» "
+AVISO_DEMO = ("Estás viendo la cartera de ejemplo. Presiona «Empezar con mis datos» "
               "para crear la tuya y poder guardar cambios.")
 
 

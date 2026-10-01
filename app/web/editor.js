@@ -120,7 +120,7 @@
       <label class="opcion"><input type="radio" name="desde" value="ejemplo">
         <span><b>Copiar el ejemplo para practicar</b><br>Puedes tocar, añadir y borrar sin miedo.
         Cuando quieras empezar de verdad, borra sus productos.</span></label>
-      <p class="ayuda">Tus datos se guardan solo en tu ordenador, en la carpeta <code>mis_datos</code>.</p>`,
+      <p class="ayuda">Tus datos se guardan solo en tu computador, en la carpeta <code>mis_datos</code>.</p>`,
     async f => {
       await api("POST", "api/empezar", { desde: campos(f).desde });
       recuerda.guarda("patrimonio.tab", "datos");
@@ -244,7 +244,7 @@
         <div class="fila"><div class="caja">${LUPA}<input id="bq" placeholder="IE00BYX5NX33, AAPL, bitcoin, oro…" autocomplete="off"></div>
           <button type="button" class="btn prim" id="bBuscar">Buscar</button></div>
         <div id="bRes" class="bRes"></div>
-        <p class="ayuda">¿No aparece o no tiene precio en internet (un piso, oro físico, un plan de pensiones)?
+        <p class="ayuda">¿No aparece o no tiene precio en internet (un departamento, oro físico, un depósito a plazo)?
           Rellénalo abajo y elige <b>«Valor anotado a mano»</b> como fuente del precio.</p>
       </div>
 
@@ -554,7 +554,7 @@
 
   function zona(acepta, varios, texto) {
     return `<label class="zona" id="imZona"><input type="file" id="imArchivos" accept="${acepta}"${varios ? " multiple" : ""}>
-      <span class="zIc">↥</span><b>${texto}</b><small>o pulsa aquí para elegir${varios ? "los" : "lo"}</small>
+      <span class="zIc">↥</span><b>${texto}</b><small>o haz clic aquí para elegir${varios ? "los" : "lo"}</small>
       <span class="zNom" id="imNombres"></span></label>`;
   }
 
@@ -728,7 +728,7 @@
       <td style="text-align:left">${esc(c.motivo)}</td><td>${c.productos}</td><td>${c.movimientos}</td>
       <td class="acc"><button data-acc="recuperarCopia" data-id="${esc(c.archivo)}">Recuperar</button></td></tr>`).join("");
     return `<section class="tarjeta"><header><h2>Copia de seguridad</h2>
-        <span class="subt">Un archivo con toda tu cartera, para guardarlo donde quieras o pasarlo a otro ordenador.</span></header>
+        <span class="subt">Un archivo con toda tu cartera, para guardarlo donde quieras o pasarlo a otro computador.</span></header>
       <div class="dosCol">
         <div class="bloque"><b>Guardar una copia</b>
           <p class="ayuda">Descarga un archivo <code>.json</code> con todos tus productos, movimientos y saldos.

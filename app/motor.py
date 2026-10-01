@@ -620,6 +620,20 @@ def construir(cfg, carpeta, descargar=True):
     movs_por, vals_por = defaultdict(list), defaultdict(list)
     for m in cfg.get("movimientos", []):
         movs_por[m.get("producto")].append(m)
+    # Compras o ventas sin el campo "unidades" (solo pasa en la cartera de ejemplo:
+    # la app lo exige al guardar; ojo, 0 unidades es otra cosa y no se toca): se calculan con el precio de ese dia, asi el ejemplo cuadra
+    # con los precios reales que se descarguen.
+    for p in productos_cfg:
+        movs = movs_por.get(p["id"], [])
+        if p["fuente"] == "manual" or not any(m.get("tipo") in ("compra", "venta")
+                                               and m.get("unidades") is None for m in movs):
+            continue
+        s = precio_eur(p, series)
+        for i, m in enumerate(movs):
+            if m.get("tipo") in ("compra", "venta") and m.get("unidades") is None:
+                pr = valor_en(s, m["fecha"], margen=7)
+                if pr:
+                    movs[i] = dict(m, unidades=round(float(m["importe"]) / pr, 6))
     for v in cfg.get("valoraciones", []):
         vals_por[v.get("producto")].append(v)
 
@@ -1123,8 +1137,9 @@ def construir(cfg, carpeta, descargar=True):
 
     # El tipo sin riesgo sale de tu propio fondo monetario, si tienes uno, no de una
     # tabla externa. Sin monetario, el comparador no calcula el ratio de Sharpe.
-    sin_riesgo = next((p["id"] for p in productos if p.get("navSerie") and "monetari" in
-                       " ".join(str(p.get(k, "")) for k in ("tipo", "clase", "nombre")).lower()), None)
+    sin_riesgo = next((p["id"] for p in productos if p.get("navSerie") and any(
+                       x in " ".join(str(p.get(k, "")) for k in ("tipo", "clase", "nombre")).lower()
+                       for x in ("monetari", "money market"))), None)
     idx_mon = indice_pesos({sin_riesgo: 1}) if sin_riesgo else None
     m_mon = metricas_indice(idx_mon) if idx_mon else None
     rf = m_mon["cagr"] if m_mon else None
