@@ -80,7 +80,7 @@ def numero(valor, etiqueta, errores, obligatorio=True, minimo=None, mayor_que=No
     if isinstance(valor, (int, float)):
         x = float(valor)
     else:
-        t = valor.strip().replace("€", "").replace("%", "").replace(" ", "")
+        t = valor.strip().replace("€", "").replace("US$", "").replace("$", "").replace("%", "").replace(" ", "")
         if not re.fullmatch(r"-?[\d.,]+", t):
             errores.append(f"{etiqueta.capitalize()} no es un número: «{valor}».")
             return None

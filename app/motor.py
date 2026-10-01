@@ -76,7 +76,7 @@ def rango_fechas(desde, hasta):
 
 def num_es(txt):
     """Convierte '1.399,89' o '3352,6' o '13.25' en float."""
-    t = (txt or "").strip().replace(" ", "").replace(" ", "").replace("€", "")
+    t = (txt or "").strip().replace(" ", "").replace(" ", "").replace("€", "").replace("US$", "").replace("$", "")
     if not t:
         return 0.0
     if "," in t and "." in t:
