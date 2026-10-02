@@ -1,0 +1,48 @@
+{
+  "fuente": "Franco Martini (@fmartini), video de YouTube. Referencia general para el mercado chileno.",
+  "explicacion": "docs/conocimiento/criterios-valoracion.md",
+  "mercado": "CL",
+  "identidad": "P/VL = PER x ROE (ROE en decimal)",
+  "indicadores": {
+    "per": {
+      "nombre": "PER (precio sobre utilidad)",
+      "formula": "precio / utilidad por accion de los ultimos 12 meses",
+      "mejor": "bajo",
+      "rangos": [
+        {"hasta": 12, "nivel": "bueno", "texto": "Bueno", "nota": "La fuente dice 'bajo 10 a 12': entre 10 y 12 es zona gris"},
+        {"desde": 12, "hasta": 15, "nivel": "aceptable", "texto": "Aceptable"},
+        {"desde": 15, "nivel": "caro", "texto": "Empieza a estar cara"}
+      ],
+      "no_aplica_si": "utilidad negativa"
+    },
+    "roe": {
+      "nombre": "ROE (rentabilidad sobre el patrimonio)",
+      "formula": "utilidad de los ultimos 12 meses / patrimonio",
+      "mejor": "alto",
+      "unidad": "porcentaje",
+      "rangos": [
+        {"hasta": 5, "nivel": "pesimo", "texto": "Pésimo: menos que un depósito a plazo o la tasa del Banco Central"},
+        {"desde": 5, "hasta": 10, "nivel": "bajo", "texto": "No compensa el riesgo"},
+        {"desde": 10, "hasta": 15, "nivel": "aceptable", "texto": "Aceptable"},
+        {"desde": 15, "nivel": "bueno", "texto": "Buena empresa, compensa totalmente"}
+      ]
+    },
+    "pvl": {
+      "nombre": "P/VL (precio sobre valor libro)",
+      "formula": "precio / patrimonio por accion",
+      "mejor": "bajo",
+      "rangos": [
+        {"hasta": 1, "nivel": "bueno", "texto": "Bueno"},
+        {"desde": 1, "hasta": 2, "nivel": "aceptable", "texto": "Sano, si lo justifica un buen ROE"},
+        {"desde": 2, "nivel": "caro", "texto": "Sobreprecio; puede justificarse con un ROE muy alto", "nota": "La fuente dice 'sobre 2 o 3'"}
+      ]
+    }
+  },
+  "advertencias": {
+    "ciclica": "PER engañoso en el peak del ciclo: usar utilidades promedio de varios años.",
+    "banco": "P/VL y ROE juntos son la valoración estándar.",
+    "holding": "Suele transarse bajo valor libro de forma permanente; P/VL < 1 no es oportunidad automática.",
+    "eeuu": "Umbrales pensados para Chile; el mercado de EE. UU. tiene PER estructuralmente más altos.",
+    "etf": "No aplica a ETF ni fondos: usar rebalanceo por bandas."
+  }
+}
